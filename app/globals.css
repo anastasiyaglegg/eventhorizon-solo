@@ -42,12 +42,19 @@ button.secondary { background: transparent; color: var(--accent); }
 fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .checkbox { display: flex; align-items: center; gap: .5rem; width: fit-content; margin: .6rem 0; color: var(--muted); }
 .checkbox input { width: 1.1rem; min-height: auto; height: 1.1rem; accent-color: var(--accent); }
-.report, .map-results { border-top: 1px solid var(--line); margin-top: 1.2rem; padding-top: 1.1rem; }
+.report, .vendor-results { border-top: 1px solid var(--line); margin-top: 1.2rem; padding-top: 1.1rem; }
 .report ul { margin: 0; padding-left: 1.2rem; }
 .actions { margin-top: 1rem; }
 .error { color: #ffb6b6; }
-iframe { display: block; border: 0; width: 100%; height: 22rem; margin-bottom: .7rem; border-radius: .65rem; }
 @media (max-width: 32rem) {
   .schedule li { grid-template-columns: 5rem 1fr; }
   .schedule small { grid-column: 2; }
 }
+
+.vendor-list { padding-left: 1.5rem; }
+.vendor-list li { border-bottom: 1px solid var(--line); padding: .65rem 0; }
+.vendor-list li > * { display: block; }
+.vendor-list li span, .vendor-list li a, .vendor-policy { font-size: .9rem; }
+.vendor-list li span { color: var(--muted); }
+.maps-attribution { display: inline-block; color: #5e5e5e; background: #fff; padding: .15rem .45rem; border-radius: .25rem; white-space: nowrap; margin-right: 1rem; }
+.vendor-policy { margin-top: 1rem; }

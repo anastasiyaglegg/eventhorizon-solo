@@ -16,7 +16,7 @@ export default function Home() {
         <span className="badge">Sample event · {eventLocation}</span>
       </div>
       <Readiness />
-      <VendorFinder embedKey={process.env.GOOGLE_MAPS_EMBED_KEY} />
+      <VendorFinder />
     </main>
   </>;
 }

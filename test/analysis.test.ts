@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { analyze } from '../lib/analysis.ts';
-import { vendorSearch } from '../lib/vendor-search.ts';
 
 test('on-time catering finishes before the dependent tasks', async () => {
   const result = await analyze('16:00', '16:00', 90, undefined);
@@ -59,17 +58,4 @@ test('malformed and invalid provider output cannot produce an approvable report'
   }
   await assert.rejects(analyze('16:00', '17:00', 90, 'test-key', async () =>
     new Response(null, { status: 429 })), /provider unavailable/);
-});
-
-test('vendor searches encode the selected category and exact entered location', () => {
-  const result = vendorSearch('Florists', '  Montréal, QC & nearby ', 'test-key');
-  const maps = new URL(result.mapsUrl);
-  assert.equal(maps.pathname, '/maps/search/');
-  assert.equal(maps.searchParams.get('api'), '1');
-  assert.equal(maps.searchParams.get('query'), 'Florists near Montréal, QC & nearby');
-  assert.ok(result.embedUrl);
-  const embed = new URL(result.embedUrl);
-  assert.equal(embed.pathname, '/maps/embed/v1/search');
-  assert.equal(embed.searchParams.get('q'), maps.searchParams.get('query'));
-  assert.equal(vendorSearch('Caterers', 'Brooklyn').embedUrl, null);
 });
