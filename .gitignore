@@ -19,3 +19,8 @@ coverage/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Next.js and TypeScript
+.next/
+next-env.d.ts
+*.tsbuildinfo
