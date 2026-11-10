@@ -11,9 +11,9 @@ type Review =
 
 const storageKey = 'event-horizon-catering-arrival';
 
-function Findings({ title, items }: { title: string; items: string[] }) {
+function Findings({ title, items, empty = 'None identified.' }: { title: string; items: string[]; empty?: string }) {
   return <div><h3>{title}</h3>
-    {items.length ? <ul>{items.map((item, index) => <li key={index}>{item}</li>)}</ul> : <p>None identified.</p>}
+    {items.length ? <ul>{items.map((item, index) => <li key={index}>{item}</li>)}</ul> : <p>{empty}</p>}
   </div>;
 }
 
@@ -109,15 +109,17 @@ export default function Readiness() {
         ? `Setup finishes at ${review.result.timing.finish}. ${review.result.timing.overlap} min overlap after doors open.`
         : 'Setup finish and overlap are unknown.'}</p>
       <div className="findings">
-        <Findings title="Affected tasks" items={review.result.report.affected_task_ids.map(id =>
-          tasks.find(task => task.id === id)!.name)} />
+        <Findings title="Affected tasks"
+          items={(review.result.timing?.affectedIds ?? []).map(id => tasks.find(task => task.id === id)!.name)}
+          empty={review.result.timing ? undefined : 'Cannot be determined until setup duration is known.'} />
         <Findings title="Scheduling risks" items={review.result.report.scheduling_risks} />
         <Findings title="Missing information" items={review.result.report.unknowns} />
       </div>
       <h3>Recommended next step</h3>
       <p>{review.result.report.recommendation}</p>
+      {!review.result.approvable && <p>Approval is unavailable until the missing information is confirmed.</p>}
       <div className="actions">
-        <button onClick={() => decide(true)}>Approve arrival</button>
+        {review.result.approvable && <button onClick={() => decide(true)}>Approve arrival</button>}
         <button className="secondary" onClick={() => decide(false)}>Reject proposal</button>
       </div>
     </div>}

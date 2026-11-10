@@ -24,7 +24,7 @@ Copy `.env.example` to `.env.local` and restart the development server after edi
 
 1. Analyze a 16:00 arrival. Setup finishes at 17:30, before the 18:00 doors.
 2. Analyze a 17:00 arrival. Setup finishes at 18:30, 30 minutes after doors open. Review the two catering-dependent tasks and approve or reject the proposal. Approval saves the new arrival for this browser tab’s session.
-3. Try the unknown setup duration option. The report flags the missing detail and leaves setup finish and overlap unknown.
+3. Try the unknown setup duration option. The report flags the missing detail, leaves setup finish, overlap, and affected tasks unknown, and keeps approval unavailable.
 4. Under **Vendor finder**, choose a category, enter a city, ZIP code, or venue address, and select **Find vendors**. Review up to 10 listings on the dashboard. Select **Show more** when available to load the next 10.
 
 ## Checks
