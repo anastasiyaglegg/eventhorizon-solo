@@ -9,8 +9,10 @@ export const eventLocation = 'Brooklyn, NY';
 export const initialArrival = '16:00';
 export const setupMinutes = 90;
 
+export const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
+
 export function isTime(value: unknown): value is string {
-  return typeof value === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+  return typeof value === 'string' && timePattern.test(value);
 }
 
 function minutes(time: string) {
@@ -19,9 +21,9 @@ function minutes(time: string) {
 }
 
 export function displayTime(value: number) {
-  const hour = Math.floor(value / 60) % 24;
+  const hour = String(Math.floor(value / 60) % 24).padStart(2, '0');
   const minute = String(value % 60).padStart(2, '0');
-  return `${hour % 12 || 12}:${minute} ${hour < 12 ? 'AM' : 'PM'}${value >= 1440 ? ' next day' : ''}`;
+  return `${hour}:${minute}${value >= 1440 ? ' (next day)' : ''}`;
 }
 
 export function schedule(arrival: string, duration: number | null) {

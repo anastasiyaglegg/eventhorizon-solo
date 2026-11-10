@@ -4,14 +4,14 @@ import { analyze } from '../lib/analysis.ts';
 
 test('on-time catering finishes before the dependent tasks', async () => {
   const result = await analyze('16:00', '16:00', 90, undefined);
-  assert.deepEqual(result.timing, { finish: '5:30 PM', overlap: 0, affectedIds: [] });
+  assert.deepEqual(result.timing, { finish: '17:30', overlap: 0, affectedIds: [] });
   assert.deepEqual(result.report.affected_task_ids, []);
   assert.match(result.source, /Demo report/);
 });
 
 test('late catering overlaps doors by 30 minutes and only affects dependent tasks', async () => {
   const result = await analyze('16:00', '17:00', 90, undefined);
-  assert.deepEqual(result.timing, { finish: '6:30 PM', overlap: 30, affectedIds: ['buffet', 'briefing'] });
+  assert.deepEqual(result.timing, { finish: '18:30', overlap: 30, affectedIds: ['buffet', 'briefing'] });
   assert.deepEqual(result.report.affected_task_ids, ['buffet', 'briefing']);
 });
 
@@ -58,4 +58,9 @@ test('malformed and invalid provider output cannot produce an approvable report'
   }
   await assert.rejects(analyze('16:00', '17:00', 90, 'test-key', async () =>
     new Response(null, { status: 429 })), /provider unavailable/);
+});
+
+test('overnight setup shows a zero-padded 24-hour time and day rollover', async () => {
+  const result = await analyze('16:00', '23:00', 90, undefined);
+  assert.equal(result.timing?.finish, '00:30 (next day)');
 });
