@@ -1,0 +1,136 @@
+'use client';
+
+import { useEffect, useState, type FormEvent } from 'react';
+import type { Analysis } from '../lib/analysis';
+import { eventStart, initialArrival, isTime, setupMinutes, tasks, timePattern } from '../lib/event';
+import { cateringId, eventDate, readBookings, saveBookings } from '../lib/vendor-calendar';
+
+type Review =
+  | { state: 'idle' | 'analyzing' | 'approved' | 'rejected' }
+  | { state: 'error'; message: string }
+  | { state: 'ready'; result: Analysis; proposal: string };
+
+function Findings({ title, items, empty = 'None identified.' }: { title: string; items: string[]; empty?: string }) {
+  return <div><h3>{title}</h3>
+    {items.length ? <ul>{items.map((item, index) => <li key={index}>{item}</li>)}</ul> : <p>{empty}</p>}
+  </div>;
+}
+
+export default function Readiness() {
+  const [arrival, setArrival] = useState(initialArrival);
+  const [arrivalDate, setArrivalDate] = useState(eventDate);
+  const onEventDate = arrivalDate === eventDate;
+  const [proposal, setProposal] = useState('17:00');
+  const [missingSetup, setMissingSetup] = useState(false);
+  const [review, setReview] = useState<Review>({ state: 'idle' });
+
+  useEffect(() => {
+    function restore() {
+      const booking = readBookings().find(item => item.id === cateringId);
+      if (booking) {
+        setArrival(booking.time);
+        setArrivalDate(booking.date);
+        setReview({ state: 'idle' });
+      }
+    }
+    restore();
+    window.addEventListener('pageshow', restore);
+    return () => window.removeEventListener('pageshow', restore);
+  }, []);
+
+  async function runAnalysis(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!onEventDate || !isTime(proposal) || review.state === 'analyzing') return;
+    setReview({ state: 'analyzing' });
+    try {
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ arrival: proposal, currentArrival: arrival, missingSetup }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        setReview({ state: 'error', message: result.error });
+        return;
+      }
+      setReview({ state: 'ready', result, proposal });
+    } catch {
+      setReview({ state: 'error', message: 'Could not complete the analysis. Try again.' });
+    }
+  }
+
+  function decide(approved: boolean) {
+    if (review.state !== 'ready') return;
+    if (approved) {
+      if (!review.result.approvable) return;
+      const updated = readBookings().map(booking => booking.id === cateringId
+        ? { ...booking, time: review.proposal } : booking);
+      if (!saveBookings(updated)) {
+        setReview({ state: 'error', message: 'The browser could not save this arrival change.' });
+        return;
+      }
+      setArrival(review.proposal);
+    }
+    setProposal('');
+    setReview({ state: approved ? 'approved' : 'rejected' });
+  }
+
+  return <section className="panel" id="readiness" aria-labelledby="readiness-title">
+    <p className="eyebrow">01 / Schedule review</p>
+    <h2 id="readiness-title">Event readiness</h2>
+    <dl className="metrics">
+      <div><dt>Doors open</dt><dd>{eventStart}</dd></div>
+      <div><dt>Current catering arrival</dt><dd>{arrival}{!onEventDate && ` · ${arrivalDate}`}</dd></div>
+      <div><dt>Setup duration</dt><dd>{missingSetup ? 'Unknown' : `${setupMinutes} min`}</dd></div>
+    </dl>
+    <h3>Run of show</h3>
+    <ul className="schedule">{[...tasks].sort((a, b) => a.time.localeCompare(b.time)).map(task =>
+      <li key={task.id}><time dateTime={task.time}>{task.time}</time><span>{task.name}</span>
+        <small>{task.dependsOnCatering ? 'Depends on catering' : 'Independent'}</small></li>)}</ul>
+    {!onEventDate && <p>Catering is booked on a different date. Use the <a href="/vendor-calendar">Vendor Calendar</a> to move it to the event date before analyzing its arrival.</p>}
+    <form onSubmit={runAnalysis}>
+      <fieldset disabled={!onEventDate || review.state === 'analyzing'}>
+        <div className="controls">
+          <label>Proposed catering arrival<input type="text" required pattern={timePattern.source} maxLength={5}
+            placeholder="HH:MM" title="Enter a 24-hour time in HH:MM, for example 17:00" value={proposal} onChange={event => {
+            setProposal(event.target.value);
+            setReview({ state: 'idle' });
+          }} /></label>
+          <button disabled={!proposal}>{review.state === 'analyzing' ? 'Analyzing…' : 'Analyze arrival'}</button>
+        </div>
+        <label className="checkbox"><input type="checkbox" checked={missingSetup} onChange={event => {
+          setMissingSetup(event.target.checked);
+          setReview({ state: 'idle' });
+        }} /> Try the demo with an unknown setup duration</label>
+      </fieldset>
+    </form>
+    <div role="status">
+      {review.state === 'analyzing' && <p>Checking the proposed arrival…</p>}
+      {review.state === 'approved' && <p>Arrival updated to {arrival} for this session.</p>}
+      {review.state === 'rejected' && <p>Proposal rejected. Catering is still scheduled for {arrival}.</p>}
+    </div>
+    {review.state === 'error' && <p role="alert" className="error">{review.message}</p>}
+    {review.state === 'ready' && <div className="report" aria-labelledby="report-title">
+      <p className="eyebrow">{review.result.source}</p>
+      <h3 id="report-title">Impact report</h3>
+      <p>Current arrival <strong>{arrival}</strong> · Proposed arrival <strong>{review.proposal}</strong></p>
+      <p><strong>Calculated schedule</strong> · {review.result.timing
+        ? `Setup finishes at ${review.result.timing.finish}. ${review.result.timing.overlap} min overlap after doors open.`
+        : 'Setup finish and overlap are unknown.'}</p>
+      <div className="findings">
+        <Findings title="Affected tasks"
+          items={(review.result.timing?.affectedIds ?? []).map(id => tasks.find(task => task.id === id)!.name)}
+          empty={review.result.timing ? undefined : 'Cannot be determined until setup duration is known.'} />
+        <Findings title="Scheduling risks" items={review.result.report.scheduling_risks} />
+        <Findings title="Missing information" items={review.result.report.unknowns} />
+      </div>
+      <h3>Recommended next step</h3>
+      <p>{review.result.report.recommendation}</p>
+      {!review.result.approvable && <p>Approval is unavailable until the missing information is confirmed.</p>}
+      <div className="actions">
+        {review.result.approvable && <button onClick={() => decide(true)}>Approve arrival</button>}
+        <button className="secondary" onClick={() => decide(false)}>Reject proposal</button>
+      </div>
+    </div>}
+  </section>;
+}
