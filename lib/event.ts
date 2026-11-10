@@ -15,7 +15,7 @@ export function isTime(value: unknown): value is string {
   return typeof value === 'string' && timePattern.test(value);
 }
 
-function minutes(time: string) {
+export function minutes(time: string) {
   const [hours, minutes] = time.split(':').map(Number);
   return hours * 60 + minutes;
 }

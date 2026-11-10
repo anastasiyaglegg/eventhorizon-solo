@@ -58,3 +58,14 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .vendor-list li span { color: var(--muted); }
 .maps-attribution { display: inline-block; color: #5e5e5e; background: #fff; padding: .15rem .45rem; border-radius: .25rem; white-space: nowrap; margin-right: 1rem; }
 .vendor-policy { margin-top: 1rem; }
+.calendar-nav label { flex: 0 1 12rem; }
+.calendar-dates { margin-bottom: 1rem; }
+.calendar-dates [aria-pressed="true"] { background: var(--accent); color: #13241c; }
+.calendar-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: .55rem; }
+.calendar-slot { border: 1px dashed var(--line); border-radius: .55rem; padding: .55rem; min-height: 3.2rem; }
+.calendar-slot > time { color: var(--muted); font-variant-numeric: tabular-nums; }
+.calendar-booking { display: grid; justify-items: start; gap: .35rem; border: 1px solid var(--line); background: var(--bg); border-radius: .45rem; padding: .55rem; margin-top: .4rem; cursor: grab; }
+.calendar-booking button { font-size: .85rem; }
+.calendar-milestone, .calendar-warning strong { color: #f5cc81; }
+
+.calendar-booking [data-booking-status="Proposed"] { color: #f5cc81; border-style: dashed; }

@@ -3,13 +3,12 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import type { Analysis } from '../lib/analysis';
 import { eventStart, initialArrival, isTime, setupMinutes, tasks, timePattern } from '../lib/event';
+import { cateringId, eventDate, readBookings, saveBookings } from '../lib/vendor-calendar';
 
 type Review =
   | { state: 'idle' | 'analyzing' | 'approved' | 'rejected' }
   | { state: 'error'; message: string }
   | { state: 'ready'; result: Analysis; proposal: string };
-
-const storageKey = 'event-horizon-catering-arrival';
 
 function Findings({ title, items, empty = 'None identified.' }: { title: string; items: string[]; empty?: string }) {
   return <div><h3>{title}</h3>
@@ -19,22 +18,29 @@ function Findings({ title, items, empty = 'None identified.' }: { title: string;
 
 export default function Readiness() {
   const [arrival, setArrival] = useState(initialArrival);
+  const [arrivalDate, setArrivalDate] = useState(eventDate);
+  const onEventDate = arrivalDate === eventDate;
   const [proposal, setProposal] = useState('17:00');
   const [missingSetup, setMissingSetup] = useState(false);
   const [review, setReview] = useState<Review>({ state: 'idle' });
 
   useEffect(() => {
-    try {
-      const saved = sessionStorage.getItem(storageKey);
-      if (isTime(saved)) setArrival(saved);
-    } catch {
-      // The workflow can continue in memory when storage is unavailable.
+    function restore() {
+      const booking = readBookings().find(item => item.id === cateringId);
+      if (booking) {
+        setArrival(booking.time);
+        setArrivalDate(booking.date);
+        setReview({ state: 'idle' });
+      }
     }
+    restore();
+    window.addEventListener('pageshow', restore);
+    return () => window.removeEventListener('pageshow', restore);
   }, []);
 
   async function runAnalysis(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!isTime(proposal) || review.state === 'analyzing') return;
+    if (!onEventDate || !isTime(proposal) || review.state === 'analyzing') return;
     setReview({ state: 'analyzing' });
     try {
       const response = await fetch('/api/analyze', {
@@ -56,12 +62,14 @@ export default function Readiness() {
   function decide(approved: boolean) {
     if (review.state !== 'ready') return;
     if (approved) {
-      setArrival(review.proposal);
-      try {
-        sessionStorage.setItem(storageKey, review.proposal);
-      } catch {
-        // The approved change remains available in this page.
+      if (!review.result.approvable) return;
+      const updated = readBookings().map(booking => booking.id === cateringId
+        ? { ...booking, time: review.proposal } : booking);
+      if (!saveBookings(updated)) {
+        setReview({ state: 'error', message: 'The browser could not save this arrival change.' });
+        return;
       }
+      setArrival(review.proposal);
     }
     setProposal('');
     setReview({ state: approved ? 'approved' : 'rejected' });
@@ -72,15 +80,16 @@ export default function Readiness() {
     <h2 id="readiness-title">Event readiness</h2>
     <dl className="metrics">
       <div><dt>Doors open</dt><dd>{eventStart}</dd></div>
-      <div><dt>Current catering arrival</dt><dd>{arrival}</dd></div>
+      <div><dt>Current catering arrival</dt><dd>{arrival}{!onEventDate && ` · ${arrivalDate}`}</dd></div>
       <div><dt>Setup duration</dt><dd>{missingSetup ? 'Unknown' : `${setupMinutes} min`}</dd></div>
     </dl>
     <h3>Run of show</h3>
     <ul className="schedule">{[...tasks].sort((a, b) => a.time.localeCompare(b.time)).map(task =>
       <li key={task.id}><time dateTime={task.time}>{task.time}</time><span>{task.name}</span>
         <small>{task.dependsOnCatering ? 'Depends on catering' : 'Independent'}</small></li>)}</ul>
+    {!onEventDate && <p>Catering is booked on a different date. Use the <a href="/vendor-calendar">Vendor Calendar</a> to move it to the event date before analyzing its arrival.</p>}
     <form onSubmit={runAnalysis}>
-      <fieldset disabled={review.state === 'analyzing'}>
+      <fieldset disabled={!onEventDate || review.state === 'analyzing'}>
         <div className="controls">
           <label>Proposed catering arrival<input type="text" required pattern={timePattern.source} maxLength={5}
             placeholder="HH:MM" title="Enter a 24-hour time in HH:MM, for example 17:00" value={proposal} onChange={event => {

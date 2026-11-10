@@ -27,6 +27,10 @@ Copy `.env.example` to `.env.local` and restart the development server after edi
 3. Try the unknown setup duration option. The report flags the missing detail, leaves setup finish, overlap, and affected tasks unknown, and keeps approval unavailable.
 4. Under **Vendor finder**, choose a category, enter a city, ZIP code, or venue address, and select **Find vendors**. Review up to 10 listings on the dashboard. Select **Show more** when available to load the next 10.
 
+## Vendor Calendar
+
+Open **Vendor calendar** to browse confirmed bookings and proposed future slots for the sample event. Drag a booking onto an hour or a listed date, or use **Move booking** for an exact `HH:MM` time on any date. Review the proposed move and any conflicts, then confirm or cancel. Confirmed changes are saved for the current browser tab and update the catering arrival shown in **Event Readiness**.
+
 ## Checks
 
 ```sh
